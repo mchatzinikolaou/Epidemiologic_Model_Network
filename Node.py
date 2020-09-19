@@ -3,8 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
-#DONE
+# DONE
 # Basic SIR in single Population
 # Migration between populations (missing travel categories of populations)
 
@@ -14,25 +13,25 @@ import matplotlib.pyplot as plt
 # Regression
 # Train a neural net
 
-#A Single epidemiologic node. This will hold the advancement of the epidemic.
-#As of now it implemets
+# A Single epidemiologic node. This will hold the advancement of the epidemic.
+# As of now it implemets
 # . Simple SIR model
 # . Migration between nodes
 
 class PopulationNode:
 
-    def __init__(self, Total_Population, beta=0.3, gamma=0.1, name="N/A",Epidemiologic_Model="asd", NeighbourMap="asd"):
+    def __init__(self, total_Population, beta=0.3, gamma=0.1, name="N/A"):
         # Normalize values so that the compartmental model is solid.
-        self.Population = Total_Population
+        self.Population = total_Population
         self.S = 1.0
         self.I = 0.0
         self.R = 0.0
         self.b = beta
         self.g = gamma
-        self.name=name
+        self.name = name
 
     def getTruePopulations(self):
-        return [self.S*self.Population, self.I*self.Population,self.R*self.Population]
+        return [self.S * self.Population, self.I * self.Population, self.R * self.Population]
 
     # Simple SIR model so far.
     # This should be passed as a function in the constructor
@@ -52,7 +51,7 @@ class PopulationNode:
         return dSIR
 
     # Advance the spread by <days>
-    #Returns the population(day) matrices
+    # Returns the population(day) matrices
     def advanceByDays(self, days):
         # Time variable
         t = np.linspace(0, days)
@@ -68,22 +67,19 @@ class PopulationNode:
         # show results, for debugging etc.
         plt.figure(str(self))
         plt.plot(t, z[:, 0], 'r-')
-        plt.plot(t, z[:, 1], 'g+')
-        plt.plot(t, z[:, 2], 'b:')
+        plt.plot(t, z[:, 1], 'g-')
+        plt.plot(t, z[:, 2], 'b-')
         plt.show()
         return z
-
 
     # A batch of <batchSize> people travels to target node.
     # This will follow to binomial probability, for the <infected_individuals> out of <batch_size>
     # This could be modelled using Monte Carlo simulations, and is yet an open question.
 
-
-    #INCOMPLETE
+    # INCOMPLETE
     def emmigrateTo(self, targetNode, batchSize):
-
-        #de-normalize
-        #This may need some integerization
+        # de-normalize
+        # This may need some integerization
         self.S = self.S * self.Population
         self.I = self.I * self.Population
         self.R = self.R * self.Population
@@ -99,7 +95,7 @@ class PopulationNode:
         S_travellers = 0
 
         # infect the other node.
-        targetNode.immigrateFrom(S_travellers,I_travellers,R_travellers)
+        targetNode.immigrateFrom(S_travellers, I_travellers, R_travellers)
 
         # update populations
         # This may need some integerization
@@ -108,16 +104,13 @@ class PopulationNode:
         self.S -= S_travellers
         self.Population -= batchSize
 
-
-        #normalize
+        # normalize
         self.S = self.S / self.Population
         self.I = self.I / self.Population
         self.R = self.R / self.Population
 
-        # Add dI infected people in the population
-
-    #INCOMPLETE
-    def immigrateFrom(self, dS,dI,dR):
+    # INCOMPLETE
+    def immigrateFrom(self, dS, dI, dR):
         # de-normalize
         # This may need some integerization
         self.S = self.S * self.Population
@@ -128,24 +121,36 @@ class PopulationNode:
         self.R += dR
         self.I += dI
         self.S += dS
-        self.Population += dR+dI+dS
+        self.Population += dR + dI + dS
 
         # normalize
         self.S = self.S / self.Population
         self.I = self.I / self.Population
         self.R = self.R / self.Population
 
-    def TestInfect(self,dI=2):
+    # infect by a miniscule amount.
+    def TestInfect(self, dI=2):
         self.Population += dI
-        self.I+=dI/self.Population
+        self.I += dI / self.Population
 
-"""
-# Demonstrating :
-node1 = PopulationNode(11000000, 0.5, 0.1)
-node2 = PopulationNode(1000, 0.2, 0.1)
+    def getName(self):
+        return self.name
 
-node1.TestInfect()
-node1.advanceByDays(100)
-node1.emmigrateTo(node2,10)
-node2.advanceByDays(100)
-"""
+
+def Demonstrate1():
+    testNode = PopulationNode(3875000, name="Athens")
+    testNode.TestInfect()
+    testNode.advanceByDays(275)
+    print("Final demographics: \n")
+    print("Susceptible: ", testNode.S)
+    print("Infectious: ", testNode.I)
+    print("Recovered: ", testNode.R)
+
+
+def Demonstrate2():
+    testNode1 = PopulationNode(3875000, name="Athens")
+    testNode2 = PopulationNode(50000, name="Chania")
+    testNode1.TestInfect()
+    testNode1.advanceByDays(10)
+    testNode1.emmigrateTo(testNode2)
+    testNode2.advanceByDays(100)

@@ -2,20 +2,23 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import Node
 
-class NodeNet():
+#TODO
+#Create node & adjasency files (check multigraphs and shapefiles)
 
-    #constructor
-    def __init__(self):
-        self.CityGraph=nx.Graph()
+
+class PopulationNet(nx.DiGraph):
 
     #add a new node
     def addNode(self,Population,Name):
-        NewNode=Node.PopulationNode(Population, name=Name)
-        self.CityGraph.add_node(NewNode)
+        NewPopNode=Node.PopulationNode(Population, name=Name)
+        self.add_node(NewPopNode)
+        return NewPopNode
 
     #add a connection between two nodes.
-    def addEdge(self,Node1,Node2):
-        self.CityGraph.add_edge(Node1,Node2)
+    def addEdge(self,NodeName1,NodeName2,Weight=1):
+        Node1=self.getNodeByName(NodeName1)
+        Node2=self.getNodeByName(NodeName2)
+        self.add_edge(Node1,Node2,weight=Weight)
 
     #draw topology
     def draw(self):
@@ -23,27 +26,36 @@ class NodeNet():
         for node in self.getNodes():
             lablist[node]=node.name
         #rename labels for showing purposes
-        H = nx.relabel_nodes(self.CityGraph,lablist)
+        H = nx.relabel_nodes(self,lablist)
         nx.draw(H, with_labels=True)
+        nx.draw_networkx_edge_labels(H,pos=nx.spring_layout(H))
         plt.show()
 
     #get all nodes
     def getNodes(self):
-        return self.CityGraph.nodes
+        return self.nodes
+
+    #return available node names.
+    def getNodeNames(self):
+        nodelist=[]
+        for node in self.nodes:
+            nodelist.append(node.getName())
+        return nodelist
+
 
     #get all edges
     def getEdges(self):
-        return self.CityGraph.edges
+        return self.edges
 
     #return a node by name.
-    def getNode(self,name):
+    def getNodeByName(self,name):
         for node in self.getNodes():
-            if node.name == name:
+            if node.getName() == name:
                 return node
 
     #Test infect a node
-    def infectNode(self,name):
-        self.getNode(name).TestInfect()
+    def testInfectNode(self,name):
+        self.getNodeByName(name).TestInfect()
 
     #Advance by some days each node.
     def advance(self,days=1):
@@ -56,23 +68,9 @@ class NodeNet():
         neighbourList=[]
         for edge in self.getEdges():
             if edge[0].name == name:
-                neighbourList.append(edge[1])
+                neighbourList.append(edge[1].getName())
         return neighbourList
 
+    def isEmpty(self):
+        return self.number_of_nodes()==0
 
-
-newnet = NodeNet()
-newnet.addNode(5000000,"Athens")
-newnet.addNode(100000,"Rhodes")
-newnet.addNode(1000,"Tzimpron")
-
-for node1 in newnet.getNodes():
-    for node2 in newnet.getNodes():
-        if node1 != node2 :
-            newnet.addEdge(node1,node2)
-
-print(newnet.FindNeighbours("Athens"))
-
-newnet.infectNode("Athens")
-newnet.advance(100)
-newnet.draw()
