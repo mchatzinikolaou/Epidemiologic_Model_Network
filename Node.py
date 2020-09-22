@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 # Calculate traveling population categories (multinomial distribution in "travel packets")
 
 # TODO
-
-
+#Change names
+#Check design patterns
 
 #Generalize the model : Add more parameters / arguments
 
@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 class PopulationNode:
 
     #The node models some compartmental model.
-    def __init__(self, total_Population, beta=0.3, gamma=0.1, name="N/A"):
+    def __init__(self, total_Population,name, beta=0.3, gamma=0.1):
         # Normalize values so that the compartmental model is solid.
         self.Population = total_Population
         self.S = 1.0
@@ -30,10 +30,11 @@ class PopulationNode:
         self.b = beta
         self.g = gamma
         self.name = name
+        self.history=[]
 
     # Returns true populations
     def getTruePopulations(self):
-        return [int(self.S * self.Population), int(self.I * self.Population),int( self.R * self.Population)]
+        return [self.S * self.Population, self.I * self.Population, self.R * self.Population]
 
     # Simple SIR model so far.
     # This should be passed as a function in the constructor
@@ -55,66 +56,89 @@ class PopulationNode:
     # Advance the spread by <days>
     # Returns the matrices with the given populations at the end of the advancement.
     def advanceByDays(self, days):
+
+
+
+        z=[]
+        for day in range(0,days):
+            self.S+= -self.b*self.I*self.S
+            self.I+= self.b*self.I*self.S-self.g*self.I
+            self.R+= self.g*self.I
+            z.append([int(self.S*self.Population),int(self.I*self.Population),int(self.R*self.Population)])
+
         # Time variable
-        t = np.linspace(0, days)
-
+        # t = range(0, days)
         # solve the model
-        z = sc.odeint(self.model_SIR, [self.S, self.I, self.R], t, args=(self.b, self.g,))
+        # z = sc.odeint(self.model_SIR, [self.S, self.I, self.R], t, args=(self.b, self.g,))
+        #[self.S,self.I,self.R]=z[-1]
 
 
-        # show results, for debugging etc.
-        plt.figure(str(self))
-        plt.plot(t, z[:, 0], 'r-')
-        plt.plot(t, z[:, 1], 'g-')
-        plt.plot(t, z[:, 2], 'b-')
-        plt.show()
+        #self.history=self.history+z.tolist()
+        self.history=self.history+z
 
-        [self.S,self.I,self.R]=z[-1]
         return z
 
     # A batch of <batchSize> people travels to target node.
     # This will follow to binomial probability, for the <infected_individuals> out of <batch_size>
     # This could be modelled using Monte Carlo simulations, and is yet an open question.
 
+    def getHistory(self):
+        return self.history
 
     def emmigrateTo(self, targetNode, batchSize):
+        if(batchSize>=self.Population):
+            print("Not enough passengers!")
+            return
 
-        #Calculate multinomial probabilities
-        [s,i,r]=self.getTruePopulations()
-        [ps,pi,pr]=[s/self.Population,i/self.Population,r/self.Population]
-
-        #draw batch size individuals and add one to each category.
-        passengers=random.multinomial(n=batchSize, pvals=[ps,pi,pr])
+        #Create passenger batch
+        travelers=random.multinomial(n=batchSize, pvals=[self.S,self.I,self.R])
 
         # infect the other node.
-        dS = passengers[0]
-        dI = passengers[1]
-        dR = passengers[2]
+        dS = travelers[0]
+        dI = travelers[1]
+        dR = travelers[2]
+        print("Sending ",dS," susceptible, ",dI," infected and", dR," immune")
         targetNode.immigrateFrom(dS,dI,dR)
 
-        # update populations
-        # This may need some integerization
+        #remove passenger population from this node.
+            #calculate using absolute values
+        S_total = int(self.S * self.Population) - dS
+        I_total = int(self.I * self.Population) - dI
+        R_total = int(self.R * self.Population) - dR
+        self.Population -= dS + dI + dR
+            #update percentages.
+        self.S = S_total / self.Population
+        self.I = I_total / self.Population
+        self.R = R_total / self.Population
 
-        self.S -= dS/self.Population
-        self.I -= dI/self.Population
-        self.R -= dR/self.Population
-        self.Population -= batchSize
 
-
-    # INCOMPLETE
     def immigrateFrom(self, dS, dI, dR):
 
-        # This may need some integerization
-        self.R += dR/self.Population
-        self.I += dI/self.Population
-        self.S += dS/self.Population
-        self.Population += (dR + dI + dS)/self.Population
+        #Add absolute values
+        S_total = int(self.S * self.Population) +dS
+        I_total = int(self.I * self.Population) +dI
+        R_total = int(self.R * self.Population) +dR
+        self.Population += dS+dI+dR
+
+        #recalculate percentages
+        self.S = S_total / self.Population
+        self.I = I_total/self.Population
+        self.R = R_total/self.Population
+        # normalize to compensate for error
+
 
 
     # infect by a miniscule amount.
-    def TestInfect(self, dI=2):
+    def TestInfect(self, dI=100):
+        S_total = int(self.S * self.Population) + 0
+        I_total = int(self.I * self.Population) + dI
+        R_total = int(self.R * self.Population) + 0
         self.Population += dI
-        self.I += dI / self.Population
+
+        # recalculate percentages
+        self.S = S_total / self.Population
+        self.I = I_total / self.Population
+        self.R = R_total / self.Population
 
     def getName(self):
         return self.name
@@ -139,4 +163,3 @@ def Demonstrate2():
     testNode1.emmigrateTo(testNode2,100)
     testNode2.advanceByDays(100)
 
-Demonstrate2()
