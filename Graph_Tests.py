@@ -2,7 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import Node
 import numpy as np
-
+import random
 
 # TODO
 # Create node & adjacency files (check multi-graphs and shapefiles)
@@ -52,8 +52,7 @@ class PopulationNet(nx.DiGraph):
             lablist[node] = node.name
         # rename labels for showing purposes
         H = nx.relabel_nodes(self, lablist)
-        nx.draw(H, with_labels=True)
-        nx.draw_networkx_edge_labels(H, pos=nx.spring_layout(H))
+        nx.draw_networkx(H, pos=nx.circular_layout(H))
         plt.show()
 
     # get all nodes
@@ -124,12 +123,12 @@ class PopulationNet(nx.DiGraph):
         each day we retrieve schedule[day], which will be a list of weights for each node.
         """
         for day in range(1, days):
+            print("Day "+str(day))
             for edge in self.edges.data():
-                print("From ", edge[0].getName(), " to ", edge[1].getName(), ": ", edge[2]['weight'], " travelers")
+                #print("From ", edge[0].getName(), " to ", edge[1].getName(), ": ", edge[2]['weight'], " travelers")
                 edge[0].TravelTo(edge[1], edge[2]['weight'])
             for node in self.nodes:
                 node.advanceByDays(1)
-            print(day)
 
     def plotNodeHistory(self, nodeName):
 
@@ -184,11 +183,33 @@ class PopulationNet(nx.DiGraph):
             I.append((history[i])[1])
             R.append((history[i])[2])
 
+        name = "nodes_"+str(self.number_of_nodes())+"_edges_"+str(self.number_of_edges())+".png"
+        print(name)
+        fig=plt.figure()
         plt.plot(t, S, 'r-')
         plt.plot(t, I, 'g-')
         plt.plot(t, R, 'b-')
-        plt.show()
+        fig.savefig(name)
+        plt.close(fig)
 
+
+def CreateNetwork(TotalPopulation,p,numberOfNodes=1):
+    """
+    Creates an Erdős–Rényi random graph using #numberOfNodes nodes and edges with probability p.
+    """
+    if p>1 or p<0:
+        print("Invalid probability value")
+        return
+
+    newnet=PopulationNet()
+    for i in range(0, numberOfNodes):
+        newnet.addNode(int(TotalPopulation/numberOfNodes), str(i))
+
+    for node1 in newnet.getNodeNames():
+        for node2 in newnet.getNodeNames():
+            if node1!=node2 and random.random()<=p:
+                newnet.addEdge(node1,node2,50)
+    return newnet
 
 
 def Demonstrate():
@@ -204,11 +225,20 @@ def Demonstrate():
     #HERE WE SHOULD READ THE EDGELISTS ETC
     newnet.addNode(100000, "Athens")
     newnet.addNode(112312, "Rhodes")
-    newnet.addNode(434123, "Chania")
-    newnet.addEdge("Athens", "Rhodes", 500)
-    newnet.addEdge("Rhodes", "Athens", 500)
-    newnet.addEdge("Athens", "Chania", 50)
-    newnet.addEdge("Rhodes", "Chania", 50)
+    newnet.addNode(334123, "Chania")
+    newnet.addNode(200000, "Chios")
+    newnet.addEdge("Athens", "Rhodes", 50)
+    newnet.addEdge("Athens", "Chania", 40)
+    newnet.addEdge("Athens", "Chios", 30)
+    newnet.addEdge("Rhodes", "Athens", 30)
+    newnet.addEdge("Rhodes", "Chania", 20)
+    newnet.addEdge("Rhodes", "Chios", 50)
+    newnet.addEdge("Chania", "Athens", 10)
+    newnet.addEdge("Chania", "Rhodes", 40)
+    newnet.addEdge("Chania", "Chios", 30)
+    newnet.addEdge("Chios", "Chania", 190)
+    newnet.addEdge("Chios", "Rhodes", 50)
+    newnet.addEdge("Chios", "Athens", 71)
 
 
 
@@ -227,8 +257,39 @@ def Demonstrate():
     newnet.plotNodeHistory("Chania")
     newnet.plotNodeHistory("Athens")
     newnet.plotNodeHistory("Rhodes")
+    newnet.plotNodeHistory("Chios")
 
     newnet.plotTotalHistory()
     print("A-OK!")
 
-Demonstrate()
+def Demonstrate2(TotalPopulation=7e08,p=0.3,numberOfNodes=50,days=365):
+
+    """
+    Main testing function
+
+    :param TotalPopulation
+    :param p: probability of an edge in E=V1xV2 existing
+    :param numberOfNodes
+    :param days: days of the simulation ran
+    """
+
+    net=CreateNetwork(TotalPopulation,p,numberOfNodes)
+    net.testInfectNode(str(0))
+    #net.draw()
+    net.departures(days)
+    net.plotTotalHistory()
+    total_infected=0
+    for node in net.getNodes():
+        history=node.getHistory()
+        total_infected+=history[-1][2]
+        if(history[-1][2]!=0):
+            print("Node ",node.getName(),"was infected with ", str(history[-1][2]))
+    print("Total infected: ",total_infected)
+
+
+#Mega Test
+
+for nodes in [10,50,100,200,500]:
+    for p_edges in [0.05,0.1,0.2,0.4,0.6,0.8,1]:
+        Demonstrate2(numberOfNodes=nodes,p=p_edges)
+
