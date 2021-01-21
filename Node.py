@@ -51,11 +51,11 @@ class PopulationNode:
 
     # Returns populations as absolute values.
     def getTruePopulations(self):
-        return [self.S * self.Population, self.I * self.Population, self.R * self.Population]
+        return [int(self.S * self.Population+0.5), int(self.I * self.Population+0.5), int(self.R * self.Population+0.5)]
         # normalize to compensate for error
 
 
-    # !!!!! REVISIT !!!! #
+    # !!!!! vvv REVISIT vvv !!!! #
     def normalize(self, IntList):
 
 
@@ -69,7 +69,7 @@ class PopulationNode:
         normalizedSIR=normalizedSIR/normalizedSIR.sum()
         return normalizedSIR
 
-    #!!! REVISIT !!!
+    #!!! ^^^ REVISIT ^^^ !!!
 
     # Simple SIR model so far.
     # This should be passed as a function in the constructor
@@ -111,7 +111,7 @@ class PopulationNode:
             self.R+= self.g*I_old
 
             #update history.
-            z.append([round(self.S*self.Population),round(self.I*self.Population),round(self.R*self.Population)])
+            z.append([int(self.S*self.Population+0.5),int(self.I*self.Population+0.5),int(self.R*self.Population+0.5)])
 
             #renew percentages for the next day.
             S_old = self.S
@@ -127,8 +127,9 @@ class PopulationNode:
 
 
     def assertCorrectPopulations(self):
-        print(self.I+self.S+self.R)
-        assert self.I+self.S+self.R==1, "Populations don't sum up to 1"
+        print(self.I + self.S + self.R)
+        assert self.I + self.S + self.R == 1, "Population quotients don't sum up to 1"
+
 
 
 
@@ -151,7 +152,7 @@ class PopulationNode:
         dI = travelers[1]
         dR = travelers[2]
         #print("Sending ",dS," susceptible, ",dI," infected and", dR," immune")
-        targetNode.TravelFrom(dS,dI,dR)
+        infected=targetNode.TravelFrom(dS,dI,dR)
 
         #remove passenger population from this node.
             #calculate using absolute values
@@ -167,7 +168,7 @@ class PopulationNode:
         self.Population -= dS + dI + dR
             #update percentages.
         [self.S, self.I, self.R] = self.normalize([S_total, I_total, R_total])
-
+        return infected
 
 
 
@@ -179,15 +180,22 @@ class PopulationNode:
         :param dI: Infected
         :param dR: Immune
         """
+        infected=False
+        if((self.I==0) and dI>=1):
+            infected=True
+
+
         #Add absolute values
         S_total = self.S * self.Population +dS
+
         I_total =self.I * self.Population +dI
+
         R_total = self.R * self.Population +dR
         self.Population += dS+dI+dR
 
         #recalculate percentages
         [self.S , self.I, self.R] = self.normalize([S_total,I_total,R_total])
-
+        return infected
 
 
 
@@ -200,9 +208,9 @@ class PopulationNode:
 
         :param dI:
         """
-        S_total = int(self.S * self.Population) + 0
-        I_total = int(self.I * self.Population) + dI
-        R_total = int(self.R * self.Population) + 0
+        S_total = int(self.S * self.Population+0.5) + 0
+        I_total = int(self.I * self.Population+0.5) + dI
+        R_total = int(self.R * self.Population+0.5) + 0
         self.Population += dI
 
         # recalculate percentages
@@ -219,7 +227,7 @@ def Demonstrate1():
     """
     testNode = PopulationNode(3875000, name="Athens")
     testNode.TestInfect()
-    testNode.advanceByDays(275)
+    testNode.advanceByDays(500)
     print("Final demographics: \n")
     [S,I,R]=testNode.getTruePopulations()
     print("Susceptible: ", S)
