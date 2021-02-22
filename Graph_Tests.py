@@ -5,24 +5,24 @@ import numpy as np
 import random
 import InfectionTree as Itree
 
-# TODO
-# Create node & adjacency files (check multi-graphs and shapefiles)
-# MC simulation of SIR
-
 class PopulationNet(nx.DiGraph):
     """
     The network that models the communication between the nodes.
     """
-    InfTree=Itree.InfectionTree()
+    InfTree = Itree.InfectionTree()
 
-    def addNode(self, Population, Name):
+    def addNode(self, Population, Name,beta,gamma):
         """
         Adds a new node to the network.
         :param Population: The population of the node
         :param Name: The name of the node.
         """
+        if beta==None and gamma==None:
+            NewPopNode = Node.PopulationNode(Population, Name)
+        else:
+            NewPopNode=Node.PopulationNode(Population,Name,beta,gamma)
 
-        NewPopNode = Node.PopulationNode(Population, name=Name)
+
         self.infectionEvents = []
         self.add_node(NewPopNode)
         return NewPopNode
@@ -43,7 +43,6 @@ class PopulationNet(nx.DiGraph):
         Node2 = self.getNodeByName(NodeName2)
         self.add_edge(Node1, Node2, weight=Weight)  # vale endexomenws type integer stin synartisi.
 
-    # draw topology
     def draw(self):
         """
         Draws the graph
@@ -57,18 +56,15 @@ class PopulationNet(nx.DiGraph):
         nx.draw_networkx(H, pos=nx.circular_layout(H))
         plt.show()
 
-    # get all nodes
     def getNodes(self):
         return self.nodes
 
-    # return available node names.
     def getNodeNames(self):
         nodelist = []
         for node in self.nodes:
             nodelist.append(node.getName())
         return nodelist
 
-    # get all edges
     def getEdges(self):
         return self.edges
 
@@ -82,7 +78,6 @@ class PopulationNet(nx.DiGraph):
                 return i
             i = i + 1
 
-    # return a node by name.
     def getNodeByName(self, name):
         """
         Returns the node object using it's name.
@@ -99,13 +94,11 @@ class PopulationNet(nx.DiGraph):
     def testInfect(self):
         list(self.nodes)[0].TestInfect()
 
-    # Advance by some days each node.
     def advance(self, days=1):
         nodes = self.getNodes()
         for node in nodes:
             node.advanceByDays(days)
 
-    # Find neighbours of given edge
     def FindNeighbours(self, name):
         """
         Returns all neighbours of the named node.
@@ -140,7 +133,6 @@ class PopulationNet(nx.DiGraph):
                 if newInfection:
                     print("Node ", edge[0].name, "infected node ", edge[1].name)
                     self.infectionEvents.append([day, edge[0], edge[1]])
-                    # TODO
                     self.InfTree.AddEdgeEvent(day, [edge[0].name, edge[1].name])
 
             # TODO
@@ -228,6 +220,19 @@ class PopulationNet(nx.DiGraph):
         plt.show()
 
 
+
+
+
+def GenerateNodes(TotalPopulation, num_nodes, node_parameters, PopulationDistributionType="uniform"):
+    nodes = []
+    if PopulationDistributionType == "uniform":
+        for i in range(0, num_nodes):
+            nodes.append(Node.PopulationNode(TotalPopulation / num_nodes, str(i), node_parameters[i][0], node_parameters[i][1]))
+    return nodes
+
+def GenerateSignleNode(Population, node_parameters):
+    return Node.PopulationNode(Population,name=str(random.random()), beta=node_parameters[0], gamma=node_parameters[1])
+
 def CreateRandomNetwork(TotalPopulation, p, numberOfNodes=1):
     if p > 1 or p < 0:
         print("Invalid probability value")
@@ -250,7 +255,7 @@ def CreateNetwork_sf(TotalPopulation, numberOfNodes=1):
 
     G = nx.scale_free_graph(numberOfNodes)
     for i in range(0, G.number_of_nodes()):
-        #newnet.addNode((G.degree[i] / G.number_of_edges()) * TotalPopulation, str(i))
+        # newnet.addNode((G.degree[i] / G.number_of_edges()) * TotalPopulation, str(i))
         newnet.addNode(int(TotalPopulation / numberOfNodes), str(i))
 
     for edge in G.edges:
@@ -260,9 +265,14 @@ def CreateNetwork_sf(TotalPopulation, numberOfNodes=1):
 
 
 def plotHistory(History):
-    S = History[0]
-    I = History[1]
-    R = History[2]
+    S = []
+    I = []
+    R = []
+    for i in History:
+        S.append(i[0])
+        I.append(i[1])
+        R.append(i[2])
+
     t = range(0, np.size(S, 0))
     fig = plt.figure()
     plt.plot(t, S, 'r-', t, I, 'g-', t, R, 'b-')
@@ -282,7 +292,7 @@ def runSimulation(totalNodes, totalPopulation, degree, days):
         print("Connected regime")
     if totalNodes > 1:
         net = CreateRandomNetwork(totalPopulation, p=degree * (2 / (totalNodes - 1)), numberOfNodes=totalNodes)
-        #net=CreateNetwork_sf(totalPopulation,totalNodes)
+        # net=CreateNetwork_sf(totalPopulation,totalNodes)
         net.testInfect()
         net.departures(days)
         # net.plotTotalHistory()
@@ -290,16 +300,15 @@ def runSimulation(totalNodes, totalPopulation, degree, days):
         return net.getTotalHistory(), net.infectionEvents  # if NaN events, can't return
 
 
-def runAndPlot():
+def runAndPlot(nodes=100, TotalPopulation=1e07, p=1.2, days=500):
     # Run n simulations
-    N = 1
-    [History, results] = runSimulation(50, 10e08, 1.2, 1000)
+    N = 5
+    [History, results] = runSimulation(nodes, TotalPopulation, p, days)
     for i in range(1, N):
-        [newHistory, newResults] = runSimulation(3, 10e08, 1.2, 300)
+        [newHistory, newResults] = runSimulation(nodes, TotalPopulation, p, days)
         History[0] = np.add(History[0], newHistory[0])
         History[1] = np.add(History[1], newHistory[1])
         History[2] = np.add(History[2], newHistory[2])
-        plotHistory(newHistory)
         plotHistory(History)
 
     S = np.divide(History[0], N)
@@ -329,5 +338,79 @@ def runAndPlot():
     # fig.savefig(name)
     plt.show()
 
+def GenerateRandomParameters(b_min, b_max, g_min, g_max, num_nodes):
+    return np.random.uniform([b_min, g_min], [b_max, g_max], (num_nodes, 2))
 
-runAndPlot()
+def GenerateLinearParameters(b_min, b_max, g_min, g_max,size=20):
+    ParamList=[]
+    for beta in np.linspace(b_min,b_max,size):
+        for gamma in np.linspace(g_min, g_max, size):
+            ParamList.append([beta,gamma])
+    return ParamList
+
+def GenerateParameters(num_nodes=100):
+    b_range = [0.1, 0.5]
+    g_range = [0.05, 0.15]
+    return GenerateRandomParameters(b_range[0], b_range[1], g_range[0], g_range[1], num_nodes)
+
+
+def runRandomNode(days=1000,population=1e07):
+    nodeParameters = GenerateParameters(1)
+    nodes=GenerateNodes(population, 1, nodeParameters)[0]
+    nodes.TestInfect()
+    history = nodes.advanceByDays(days)
+    return history,nodes.b,nodes.g
+
+
+def discreteDerivative(Points):
+
+    for i in range(len(Points)-1):
+        Points[i][:]=np.subtract(Points[i+1][:],Points[i][:])
+    return Points[0:-1][:]
+
+
+
+def betaGammaFromEquations(History):
+
+    Total_Population=sum(History[0])
+
+    beta=0
+    gamma=0
+    t=0
+
+    betas=[]
+    gammas=[]
+
+    for t in range(len(History)-1):
+        #MEDIAN INSTEAD
+        if History[t+1][1]-History[t][1]==0 or History[t+1][0]-History[t][0]==0:
+            break
+        St = np.divide(History[t+1][0], Total_Population)
+        St_1 = np.divide(History[t][0], Total_Population)
+        It = np.divide(History[t+1][1], Total_Population)
+        It_1 = np.divide(History[t][1], Total_Population)
+
+        d_beta= - np.divide((St - St_1), (np.multiply(St_1, It_1)))
+
+        d_gamma= 1 - np.divide(It, It_1) + np.multiply(d_beta, St_1)
+        #print(St - St_1,It-It_1)
+        beta =  np.add(beta,d_beta)
+        gamma = np.add(gamma,d_gamma)
+
+        #REMOVE
+        betas.append(d_beta)
+        gammas.append(d_gamma)
+        #REMOVE
+
+
+
+
+    beta=np.median(betas)
+    gamma=np.median(gammas)
+
+
+    #REMOVE
+    plt.plot(range(0,len(betas)),betas,gammas)
+    plt.show()
+    #REMOVE
+    return [beta,gamma]

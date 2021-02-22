@@ -1,16 +1,19 @@
-#import scipy.integrate as sc
-#import numpy as np
+# import scipy.integrate as sc
+# import numpy as np
 from numpy import random
 import numpy as np
+import matplotlib.pyplot as plt
+import copy
+
 # DONE
 # Basic SIR in single Population
 # Migration between populations
 # Calculate traveling population categories (multinomial distribution in "travel packets")
 
 # TODO
-#Check design patterns
+# Check design patterns
 
-#Generalize the model : Add more parameters / arguments
+# Generalize the model : Add more parameters / arguments
 
 # Regression
 # Train a neural net
@@ -23,7 +26,7 @@ class PopulationNode:
 
     """
 
-    def __init__(self, total_Population,name, beta=0.3, gamma=0.05):
+    def __init__(self, total_Population, name, beta=0.1, gamma=0.05):
         """
         Initialize the node.
         This is used to create a new node with some name and parameters beta and gamma (for the SIR model, this will
@@ -38,7 +41,7 @@ class PopulationNode:
         We also initialize a list "history" which is used to story the progress so far.
         """
 
-        #Demographics
+        # Demographics
         self.Population = total_Population
         self.S = 1.0
         self.I = 0.0
@@ -47,46 +50,45 @@ class PopulationNode:
         self.b = beta
         self.g = gamma
         self.name = name
-        self.history=[]
-
-    # Returns populations as absolute values.
-    def getTruePopulations(self):
-        return [int(self.S * self.Population+0.5), int(self.I * self.Population+0.5), int(self.R * self.Population+0.5)]
-        # normalize to compensate for error
+        self.history = []
 
 
-    # !!!!! vvv REVISIT vvv !!!! #
-    def normalize(self, IntList):
 
 
+    def biasedAdvanceByDays(self,S_bias,I_bias,R_bias,days=1):
         """
-        Compensate for error.
+                Progress the epidemic by specified amount of days (defaults to 1 day per step).
 
-        :param IntList:
-        :return:
-        """
-        normalizedSIR=np.array(IntList)
-        normalizedSIR=normalizedSIR/normalizedSIR.sum()
-        return normalizedSIR
+                Changes S ,I , R and the rest of the parameters according to the specified model.
+                (This should be , again , generalized)
 
-    #!!! ^^^ REVISIT ^^^ !!!
+                :param days: the amount of days we want to progress the solution.
+                :return: the progress throughout these days.
+                """
+        z = []
+        S_old = self.S
+        I_old = self.I
+        R_old = self.R
+        for day in range(0, days):
+            # progress according to the model
+            self.S += -self.b * S_old * I_old
+            self.I += self.b * S_old * I_old - self.g * I_old
+            self.R += self.g * I_old
 
-    # Simple SIR model so far.
-    # This should be passed as a function in the constructor
-    def model_SIR(self, SIR, t, beta, gamma):
-        # Parameters
-        S = SIR[0]
-        I = SIR[1]
-        R = SIR[2]
+            self.TravelFrom(S_bias,I_bias,R_bias)
+            # update history.
+            z.append([int(self.S * self.Population + 0.5), int(self.I * self.Population + 0.5),
+                      int(self.R * self.Population + 0.5)])
 
-        # Model Equations
-        dS = -beta * I * S
-        dI = +beta * I * S - gamma * I
-        dR = +gamma * I
+            # renew percentages for the next day.
+            S_old = self.S
+            I_old = self.I
+            R_old = self.R
 
-        # Return final result.
-        dSIR = [dS, dI, dR]
-        return dSIR
+        self.history = self.history + z
+        [self.S, self.I, self.R] = self.normalize([self.S, self.I, self.R])
+        return z
+
 
 
     def advanceByDays(self, days=1):
@@ -99,78 +101,90 @@ class PopulationNode:
         :param days: the amount of days we want to progress the solution.
         :return: the progress throughout these days.
         """
-        z=[]
-        S_old=self.S
-        I_old=self.I
-        R_old=self.R
-        for day in range(0,days):
+        z = []
+        S_old = self.S
+        I_old = self.I
+        R_old = self.R
+        for day in range(0, days):
+            # progress according to the model
+            self.S += -self.b * S_old * I_old
+            self.I += self.b * S_old * I_old - self.g * I_old
+            self.R += self.g * I_old
 
-            #progress according to the model
-            self.S+= -self.b*S_old*I_old
-            self.I+= self.b*S_old*I_old-self.g*I_old
-            self.R+= self.g*I_old
+            # update history.
+            z.append([int(self.S * self.Population + 0.5), int(self.I * self.Population + 0.5),
+                      int(self.R * self.Population + 0.5)])
 
-            #update history.
-            z.append([int(self.S*self.Population+0.5),int(self.I*self.Population+0.5),int(self.R*self.Population+0.5)])
-
-            #renew percentages for the next day.
+            # renew percentages for the next day.
             S_old = self.S
             I_old = self.I
             R_old = self.R
 
-        self.history=self.history+z
+        self.history = self.history + z
         [self.S, self.I, self.R] = self.normalize([self.S, self.I, self.R])
         return z
 
-    def getHistory(self):
-        return self.history
+    def plotNodeHistory(self):
 
+        """
+        Plot the whole history of the "nodeName" named Node.
 
-    def assertCorrectPopulations(self):
-        print(self.I + self.S + self.R)
-        assert self.I + self.S + self.R == 1, "Population quotients don't sum up to 1"
+        :param nodeName: the name of the node
 
+        """
 
+        history = self.getHistory()
+        t = range(0, np.size(history, 0))
 
+        S = []
+        I = []
+        R = []
+
+        for i in range(0, len(history)):
+            S.append((history[i])[0])
+            I.append((history[i])[1])
+            R.append((history[i])[2])
+
+        plt.plot(t, S, 'r-', t, I, 'g-', t, R, 'b-')
+
+        plt.show()
 
     def TravelTo(self, targetNode, groupSize):
         """
         :param targetNode: The node that will receive the travelers.
         :param groupSize: the total size of the travelling population
         """
-        if(groupSize>=self.Population):
+        if groupSize >= self.Population:
             print("Not enough passengers!")
             return
 
         [self.S, self.I, self.R] = self.normalize([self.S, self.I, self.R])
 
-        #Create passenger batch
-        travelers=random.multinomial(n=groupSize, pvals=[self.S,self.I,self.R])
+        # Create passenger batch
+        travelers = random.multinomial(n=groupSize, pvals=[self.S, self.I, self.R])
 
         # infect the other node.
         dS = travelers[0]
         dI = travelers[1]
         dR = travelers[2]
-        #print("Sending ",dS," susceptible, ",dI," infected and", dR," immune")
-        infected=targetNode.TravelFrom(dS,dI,dR)
+        # print("Sending ",dS," susceptible, ",dI," infected and", dR," immune")
+        infected = targetNode.TravelFrom(dS, dI, dR)
 
-        #remove passenger population from this node.
-            #calculate using absolute values
+        # remove passenger population from this node.
+        # calculate using absolute values
         S_total = self.S * self.Population - dS
-        if(S_total<0):
-            S_total=0
+        if S_total < 0:
+            S_total = 0
         I_total = self.I * self.Population - dI
-        if(I_total<0):
-            I_total=0
+        if I_total < 0:
+            I_total = 0
         R_total = self.R * self.Population - dR
-        if (R_total < 0):
+        if R_total < 0:
             R_total = 0
         self.Population -= dS + dI + dR
-            #update percentages.
+        # update percentages.
         [self.S, self.I, self.R] = self.normalize([S_total, I_total, R_total])
         return infected
-
-
 
     def TravelFrom(self, dS, dI, dR):
         """
@@ -180,27 +194,22 @@ class PopulationNode:
         :param dI: Infected
         :param dR: Immune
         """
-        infected=False
-        if((self.I==0) and dI>=1):
-            infected=True
+        infected = False
+        if (self.I == 0) and dI >= 1:
+            infected = True
 
+        # Add absolute values
+        S_total = self.S * self.Population + dS
 
-        #Add absolute values
-        S_total = self.S * self.Population +dS
+        I_total = self.I * self.Population + dI
 
-        I_total =self.I * self.Population +dI
+        R_total = self.R * self.Population + dR
+        self.Population += dS + dI + dR
 
-        R_total = self.R * self.Population +dR
-        self.Population += dS+dI+dR
-
-        #recalculate percentages
-        [self.S , self.I, self.R] = self.normalize([S_total,I_total,R_total])
+        # recalculate percentages
+        [self.S, self.I, self.R] = self.normalize([S_total, I_total, R_total])
         return infected
 
-
-
-
-    # infect by a miniscule amount.
     def TestInfect(self, dI=100):
         """
         "Inject" the population with dI infected individuals. This is used to initiate
@@ -208,17 +217,40 @@ class PopulationNode:
 
         :param dI:
         """
-        S_total = int(self.S * self.Population+0.5) + 0
-        I_total = int(self.I * self.Population+0.5) + dI
-        R_total = int(self.R * self.Population+0.5) + 0
+        S_total = int(self.S * self.Population + 0.5) + 0
+        I_total = int(self.I * self.Population + 0.5) + dI
+        R_total = int(self.R * self.Population + 0.5) + 0
         self.Population += dI
 
         # recalculate percentages
         [self.S, self.I, self.R] = self.normalize([S_total, I_total, R_total])
 
-
     def getName(self):
         return self.name
+
+    def getHistory(self):
+        return self.history
+
+    def getTruePopulations(self):
+        return [int(self.S * self.Population + 0.5), int(self.I * self.Population + 0.5),int(self.R * self.Population + 0.5)]
+
+    def normalize(self, IntList):
+
+        """
+        Compensate for error.
+
+        :param IntList:
+        :return:
+        """
+        normalizedSIR = np.array(IntList)
+        size = len(normalizedSIR)
+        normalizedSIR = normalizedSIR / normalizedSIR.sum()
+        normalizedSIR = np.maximum(normalizedSIR, np.zeros(size))
+        return normalizedSIR
+
+    def assertCorrectPopulations(self):
+        print(self.I + self.S + self.R)
+        assert self.I + self.S + self.R == 1, "Population quotients don't sum up to 1"
 
 
 def Demonstrate1():
@@ -226,24 +258,22 @@ def Demonstrate1():
     This is a demonstration of how Athens will fare with  those fake initial parameters of b and gamma.
     """
     testNode = PopulationNode(3875000, name="Athens")
-    testNode.TestInfect()
-    testNode.advanceByDays(500)
-    print("Final demographics: \n")
-    [S,I,R]=testNode.getTruePopulations()
-    print("Susceptible: ", S)
-    print("Infectious: ", I)
-    print("Recovered: ", R)
+    otherNode= copy.copy(testNode)
+    otherNode2 = copy.copy(testNode)
 
+    otherNode2.TestInfect(10)
+    otherNode.TestInfect(2)
+    otherNode.advanceByDays(500)
+    otherNode2.advanceByDays(500)
 
-def Demonstrate2():
-    """
-    A demonstration where the epidemic progresses for  70 days in Athens and then a travelling pack
-    of 100 people travel to Chania.
-    """
-    testNode1 = PopulationNode(3875000, name="Athens")
-    testNode2 = PopulationNode(50000, name="Chania")
-    testNode1.TestInfect()
-    testNode1.advanceByDays(70)
-    testNode1.TravelTo(testNode2,100)
-    testNode2.advanceByDays(100)
+    [S_b,I_b,R_b]=[15,3,1]
+    testNode.biasedAdvanceByDays(S_b,I_b,R_b,5000)
 
+    history_diff=np.subtract(otherNode2.getHistory(),otherNode.getHistory())
+
+    t=range(0, len(history_diff))
+    plt.plot(t, history_diff[:,0], 'r-', t, history_diff[:,1], 'g-', t, history_diff[:,2], 'b-')
+
+    plt.show()
+
+    testNode.plotNodeHistory()
