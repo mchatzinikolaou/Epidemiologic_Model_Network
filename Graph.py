@@ -11,7 +11,7 @@ class PopulationNet(nx.DiGraph):
     """
     InfTree = Itree.InfectionTree()
 
-    def addNode(self, Population, Name,beta,gamma):
+    def addNode(self, Population, Name,beta=0.5,gamma=0.05):
         """
         Adds a new node to the network.
         :param Population: The population of the node
@@ -126,19 +126,20 @@ class PopulationNet(nx.DiGraph):
         each day we retrieve schedule[day], which will be a list of weights for each node.
         """
         for day in range(1, days):
-            print("Day " + str(day))
+            # TODO
+
             for edge in self.edges.data():
                 # print("From ", edge[0].getName(), " to ", edge[1].getName(), ": ", edge[2]['weight'], " travelers")
                 newInfection = edge[0].TravelTo(edge[1], edge[2]['weight'])
                 if newInfection:
-                    print("Node ", edge[0].name, "infected node ", edge[1].name)
+                    print("Node ", edge[0].name, "infected node ", edge[1].name," on day ",day)
                     self.infectionEvents.append([day, edge[0], edge[1]])
                     self.InfTree.AddEdgeEvent(day, [edge[0].name, edge[1].name])
-
-            # TODO
             # Print (newly) infected nodes
             for node in self.nodes:
+                node.updatePopulation()
                 node.advanceByDays(1)
+
 
     def depart_and_randomize_travel(self, p, days=1):
         for day in range(1, days):
@@ -281,15 +282,15 @@ def plotHistory(History):
     plt.show()
 
 
-def runSimulation(totalNodes, totalPopulation, degree, days):
+def runSimulation(totalNodes=50, totalPopulation=1e08, degree=1, days=500):
     if degree < 1:
-        print("subcritical regime")
+        print("subcritical region")
     elif degree == 1:
-        print("critical regime")
+        print("critical region")
     elif degree <= np.log(totalNodes):
-        print("supercritical regime")
+        print("supercritical region")
     else:
-        print("Connected regime")
+        print("Connected region")
     if totalNodes > 1:
         net = CreateRandomNetwork(totalPopulation, p=degree * (2 / (totalNodes - 1)), numberOfNodes=totalNodes)
         # net=CreateNetwork_sf(totalPopulation,totalNodes)
@@ -300,16 +301,14 @@ def runSimulation(totalNodes, totalPopulation, degree, days):
         return net.getTotalHistory(), net.infectionEvents  # if NaN events, can't return
 
 
-def runAndPlot(nodes=100, TotalPopulation=1e07, p=1.2, days=500):
+def runAndPlot(nodes=100, TotalPopulation=1e07, p=1.2, days=500,N=5,show_lines=False):
     # Run n simulations
-    N = 5
     [History, results] = runSimulation(nodes, TotalPopulation, p, days)
     for i in range(1, N):
         [newHistory, newResults] = runSimulation(nodes, TotalPopulation, p, days)
         History[0] = np.add(History[0], newHistory[0])
         History[1] = np.add(History[1], newHistory[1])
         History[2] = np.add(History[2], newHistory[2])
-        plotHistory(History)
 
     S = np.divide(History[0], N)
     I = np.divide(History[1], N)
@@ -323,16 +322,17 @@ def runAndPlot(nodes=100, TotalPopulation=1e07, p=1.2, days=500):
     plt.plot(t, S, 'g-', t, I, 'r-', t, R, 'b-')
 
     # Visualization of infection events
-    i = 0
-    while i < len(days):
-        prev_day = days[i]
-        length = 1
-        j = 0
-        while i + j < len(days) and days[i + j] == prev_day:
-            length = length + 1
-            j = j + 1
-        plt.vlines(days[i], 0, (length - 1) * 1e08)
-        i = i + j
+    if show_lines == True:
+        i = 0
+        while i < len(days):
+            prev_day = days[i]
+            length = 1
+            j = 0
+            while i + j < len(days) and days[i + j] == prev_day:
+                length = length + 1
+                j = j + 1
+            plt.vlines(days[i], 0, (length - 1) * TotalPopulation/nodes)
+            i = i + j
 
     plt.legend(("Susceptible", "Infected", "Removed"))
     # fig.savefig(name)

@@ -1,4 +1,4 @@
-import Graph_Tests as nets
+import Graph as nets
 import time
 
 
@@ -33,14 +33,6 @@ def addNewEdge(Network):
     if(Network.number_of_nodes()<2):
         print("Not enough nodes available")
         return
-
-
-
-    #select node1
-    print()
-
-
-
     selection=-1
     i=0
     Node1=[]
