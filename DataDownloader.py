@@ -61,7 +61,7 @@ recovered_filename = './Recovered_cases.csv'
 
 #checkForUpdates('./update_checker.log',confirmed_url,deaths_url,recovered_url)
 
-#DownloadData(confirmed_url, deaths_url, recovered_url)
+DownloadData(confirmed_url, deaths_url, recovered_url)
 
 print('Reading from Confirmed cases: (' + confirmed_url + ')')
 Confirmed = readFromFile(confirmed_filename)

@@ -1,87 +1,7 @@
-# import scipy.integrate as sc
-
 from numpy import random
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage.filters import uniform_filter1d
-"""def RunUniformNoiseTests():
-    R0 = 1
-
-    fig, axs = plt.subplots(3, 2)
-
-    [error, range] = UniformNoiseTest(truebeta=np.multiply(R0, 0.05), K_max=1)
-    axs[0, 0].semilogy(range, error)
-    axs[0, 0].set_title('beta =' + str(R0 * 0.05) + ' , R0 = ' + str(R0))
-    axs[0, 0].grid(axis='y', which='major')
-
-    R0 = 1.2
-    [error, range] = UniformNoiseTest(truebeta=np.multiply(R0, 0.05), K_max=1)
-    axs[0, 1].semilogy(range, error)
-    axs[0, 1].set_title('beta =' + str(R0 * 0.05) + ' , R0 = ' + str(R0))
-    axs[0, 1].grid(axis='y', which='major')
-
-    R0 = 1.5
-    [error, range] = UniformNoiseTest(truebeta=np.multiply(R0, 0.05), K_max=1)
-    axs[1, 0].semilogy(range, error)
-    axs[1, 0].set_title('beta =' + str(R0 * 0.05) + ' , R0 = ' + str(R0))
-    axs[1, 0].grid(axis='y', which='major')
-
-    R0 = 2
-    [error, range] = UniformNoiseTest(truebeta=np.multiply(R0, 0.05), K_max=1)
-    axs[1, 1].semilogy(range, error)
-    axs[1, 1].set_title('beta =' + str(R0 * 0.05) + ' , R0 = ' + str(R0))
-    axs[1, 1].grid(axis='y', which='major')
-
-    R0 = 4
-    [error, range] =UniformNoiseTest(truebeta=np.multiply(R0, 0.05), K_max=1)
-    axs[2, 0].semilogy(range, error)
-    axs[2, 0].set_title('beta =' + str(R0 * 0.05) + ' , R0 = ' + str(R0))
-    axs[2, 0].grid(axis='y', which='major')
-
-    R0 = 8
-    [error, range] =UniformNoiseTest(truebeta=np.multiply(R0, 0.05), K_max=1)
-    axs[2, 1].semilogy(range, error)
-    axs[2, 1].set_title('beta =' + str(R0 * 0.05) + ' , R0 = ' + str(R0))
-    axs[2, 1].grid(axis='y', which='major')
-
-    plt.suptitle("Estimation error vs noise amplitude", fontsize=14)
-
-    plt.show()
-"""
-
-
-
-"""def UniformNoiseTest(truebeta=0.2,K_max=0.4):
-    testNode = PopulationNode(3875000, name="Athens", beta=truebeta)
-
-    [S_b, I_b, R_b] = [15, 3, 1]
-    testNode.biasedAdvanceByDays(S_b, I_b, R_b, 1000)
-    print(testNode.b)
-    history = testNode.getHistory()
-    testNode.plotNodeHistory()
-    # calculate true beta
-    print("estimated beta: ", calculateBetaBiased(history, S_b))
-    # calculate betas with noise
-    betas = []
-    ranges = np.linspace(0, K_max, 400)
-    for repeat in range(0, 20):
-        iter_betas = []
-        for K in ranges:
-            noiseHistory = addNoise(history, S_b, I_b, R_b, type='uniform',k=K)
-
-            S = noiseHistory[0][:]
-            I = noiseHistory[1][:]
-            R = noiseHistory[2][:]
-            noiseHistory = [[S[i], I[i], R[i]] for i in range(0, len(S))]
-            iter_betas.append(calculateBetaBiased(noiseHistory, S_b))
-
-        betas.append(iter_betas)
-    betas = np.mean(betas, axis=0)
-
-    error = np.divide(np.subtract(betas, truebeta), truebeta)
-    return [np.abs(error),ranges]
-"""
-
 
 # DONE
 # Basic SIR in single Population
@@ -139,7 +59,7 @@ class PopulationNode:
                 (This should be , again , generalized)
 
                 :param days: the amount of days we want to progress the solution.
-                :return: the progress throughout these days.
+                :return: the progress through these days.
                 """
         z = []
         S_old = self.S
@@ -147,13 +67,16 @@ class PopulationNode:
         R_old = self.R
         for day in range(0, days):
             # progress according to the model
-            self.S += -self.b * S_old * I_old
-            self.I += self.b * S_old * I_old - self.g * I_old
-            self.R += self.g * I_old
+            self.S += -np.multiply(np.multiply(self.b , S_old) , I_old)
+            self.I += np.multiply(np.multiply(self.b , S_old) , I_old) - np.multiply(self.g , I_old)
+            self.R += np.multiply(self.g , I_old)
+
+
 
             self.TravelFrom(S_bias, I_bias, R_bias)
             # update history.
-            z.append([self.S * self.Population, self.I * self.Population, self.R * self.Population])
+            self.S = max(self.S, 0)
+            z.append([np.multiply(self.S , self.Population), np.multiply(self.I , self.Population), np.multiply(self.R , self.Population)])
 
             # renew percentages for the next day.
             S_old = self.S
@@ -185,6 +108,7 @@ class PopulationNode:
             self.R += self.g * I_old
 
             # update history.
+            self.S = max(self.S, 0)
             z.append([int(self.S * self.Population + 0.5), int(self.I * self.Population + 0.5),
                       int(self.R * self.Population + 0.5)])
 
@@ -228,7 +152,7 @@ class PopulationNode:
         :param groupSize: the total size of the travelling population
         """
         if groupSize >= self.Population:
-            print("Not enough passengers!")
+            print("Not enough population in node "+str(self.name)+"!")
             return
 
         [self.S, self.I, self.R] = self.normalize([self.S, self.I, self.R])
@@ -240,21 +164,22 @@ class PopulationNode:
         dS = travelers[0]
         dI = travelers[1]
         dR = travelers[2]
-        # print("Sending ",dS," susceptible, ",dI," infected and", dR," immune")
+
+        #inform if there was an infection
         infected = targetNode.TravelFrom(dS, dI, dR)
 
         # remove passenger population from this node.
         # calculate using absolute values
-        S_total = self.S * self.Population - dS
+        S_total = round(np.multiply(self.S , self.Population) - dS)
         if S_total < 0:
             S_total = 0
-        I_total = self.I * self.Population - dI
+        I_total = round(np.multiply(self.I ,self.Population) - dI)
         if I_total < 0:
             I_total = 0
-        R_total = self.R * self.Population - dR
+        R_total = round(np.multiply(self.R , self.Population) - dR)
         if R_total < 0:
             R_total = 0
-        self.Population -= dS + dI + dR
+        self.Population -= (dS + dI + dR)
         # update percentages.
         [self.S, self.I, self.R] = self.normalize([S_total, I_total, R_total])
         return infected
@@ -272,12 +197,12 @@ class PopulationNode:
             infected = True
 
         # Add absolute values
-        S_total = self.S * self.Population + dS
+        S_total = round(np.multiply(self.S , self.Population) + dS)
 
-        I_total = self.I * self.Population + dI
+        I_total = round(np.multiply(self.I ,self.Population) + dI)
 
-        R_total = self.R * self.Population + dR
-        self.Population += dS + dI + dR
+        R_total = round(np.multiply(self.R , self.Population) + dR)
+        self.Population += (dS + dI + dR)
 
         # recalculate percentages
         [self.S, self.I, self.R] = self.normalize([S_total, I_total, R_total])
@@ -290,9 +215,9 @@ class PopulationNode:
 
         :param dI:
         """
-        S_total = int(self.S * self.Population + 0.5) + 0
-        I_total = int(self.I * self.Population + 0.5) + dI
-        R_total = int(self.R * self.Population + 0.5) + 0
+        S_total = round(np.multiply(self.S , self.Population)) + 0
+        I_total = round(np.multiply(self.I , self.Population)) + dI
+        R_total = round(np.multiply(self.R , self.Population)) + 0
         self.Population += dI
 
         # recalculate percentages
@@ -305,8 +230,8 @@ class PopulationNode:
         return self.history
 
     def getTruePopulations(self):
-        return [int(self.S * self.Population + 0.5), int(self.I * self.Population + 0.5),
-                int(self.R * self.Population + 0.5)]
+        return [round(np.multiply(self.S , self.Population)), round(np.multiply(self.I , self.Population)),
+                round(np.multiply(self.R , self.Population))]
 
     def updatePopulation(self):
         self.PopulationHistory.append(self.Population)
@@ -315,7 +240,7 @@ class PopulationNode:
 
         normalizedSIR = np.array(IntList)
         size = len(normalizedSIR)
-        normalizedSIR = normalizedSIR / normalizedSIR.sum()
+        normalizedSIR = np.divide(normalizedSIR , normalizedSIR.sum())
         normalizedSIR = np.maximum(normalizedSIR, np.zeros(size))
         return normalizedSIR
 
@@ -332,7 +257,7 @@ def betaGammaFromEquations(History):
     for t in range(1,len(History) - 1):
 
         if History[t + 1][1] - History[t][1] == 0 or History[t + 1][0] - History[t][0] == 0:
-            break
+            continue
         Total_Population = sum(History[t])
         St = np.divide(History[t + 1][0], Total_Population)
         St_1 = np.divide(History[t][0], Total_Population)
@@ -362,42 +287,15 @@ def calculateBetaBiased(history, bS):
         St_1 = S[t - 1]
         It_1 = I[t - 1]
         denom = np.multiply(St_1, It_1)
-        beta_calculated.append(
-            np.multiply(np.divide(bS, denom * population) - np.divide(St_init - St_1, denom), population))
+        beta_calculated.append(np.multiply(np.divide(bS, denom * population) - np.divide(St_init - St_1, denom), population))
     return np.median(beta_calculated)
 
-def addNoise(history, bS, bI, bR, kS=1.0, kI=1.0, kR=1.0,type='normal',k=1.0):
-
-    S = [i[0] for i in history]
-    I = [i[1] for i in history]
-    R = [i[2] for i in history]
-
-    # Add noise to the data
-    Snoise=0
-    Inoise=0
-    Rnoise=0
-    if type=='normal':
-        Snoise = np.random.normal(loc=0, scale=kS * bS, size=len(S))
-        Inoise = np.random.normal(loc=0, scale=kI * bI, size=len(I))
-        Rnoise = np.random.normal(loc=0, scale=kR * bR, size=len(R))
-    elif type == "uniform":
-        Snoise = np.multiply(np.random.uniform(low=-k,high=k, size=len(S)),S)
-        Inoise = np.multiply(np.random.uniform(low=-k,high=k, size=len(I)),I)
-        Rnoise = np.multiply(np.random.uniform(low=-k,high=k, size=len(R)),R)
-
-    S = np.add(S, Snoise)
-    I = np.add(I, Inoise)
-    R = np.add(R, Rnoise)
-
-    # Return the data with noise
-    return [S, I, R]
-
-
-def addUniformNoise(history,sigma=1):
+def addNormalNoise(history,sigma=1):
     S=[i[0] for i in history]
     I=[i[1] for i in history]
     R=[i[2] for i in history]
     [Sn,In,Rn]=[[],[],[]]
+
     for i in range(0,len(S)):
         Sn.append( np.add(S[i],np.random.normal(loc=0, scale=sigma*S[i])))
         In.append( np.add(I[i],np.random.normal(loc=0, scale=sigma*I[i])))
@@ -405,24 +303,42 @@ def addUniformNoise(history,sigma=1):
     return [Sn,In,Rn]
 
 
-def NormalNoiseTest(truebeta=0.2,max_sigma=2):
+def addMeasurementNoise(history,l=1):
+    S = [i[0] for i in history]
+    I = [i[1] for i in history]
+    R = [i[2] for i in history]
+    Population=[sum(i) for i in history]
+    [Sn, In, Rn] = [[], [], []]
+    for i in range(0, len(S)):
+        Inoise= np.subtract(I[i], np.random.exponential(scale=1/l * I[i]))
+        #Rnoise=np.subtract(R[i], np.random.exponential(scale=1/l * R[i]))
+        Rnoise=R[i]
+        In.append(max(Inoise,0))
+        Rn.append(max(Rnoise,0))
+        Sn.append(max(np.subtract(Population[i],np.add(Rnoise,Inoise)),0))
+
+    return [Sn, In, Rn]
+
+def ExponentialNoiseTest(truebeta=0.2,max_lambda=200,min_lambda=1,points=80,MAX_REPEATS=50):
     testNode = PopulationNode(3875000, name="Athens", beta=truebeta)
 
-    [S_b, I_b, R_b] = [15, 3, 1]
-    testNode.biasedAdvanceByDays(S_b, I_b, R_b, 500)
+    testNode.TestInfect(10)
+    testNode.advanceByDays(1500)
+
     print("True beta: ", testNode.b)
     history = testNode.getHistory()
 
-    # calculate true beta
-    print("estimated beta: ", calculateBetaBiased(history, S_b))
-
     # calculate betas with noise
     betas = []
-    sigmas = np.linspace(0,max_sigma,200)
-    for repeat in range(0,50):
+    lambdas = np.linspace(min_lambda,max_lambda,points)
+    for l in lambdas:
         iter_betas = []
-        for k in sigmas:
-            noiseHistory = addUniformNoise(history,sigma=k)
+        #for each sigma
+        Ss=[]
+        Is=[]
+        Rs=[]
+        for repeat in range(0,MAX_REPEATS):
+            noiseHistory = addMeasurementNoise(history, l=l)
 
             S = noiseHistory[0][:]
             I = noiseHistory[1][:]
@@ -430,27 +346,42 @@ def NormalNoiseTest(truebeta=0.2,max_sigma=2):
 
             #take rolling averages
 
-            M=30
+            M=60
             S = uniform_filter1d(S, size=M)
             I = uniform_filter1d(I, size=M)
             R = uniform_filter1d(R, size=M)
 
+            Ss.append(S)
+            Is.append(I)
+            Rs.append(R)
+
+
             noiseHistory = [[S[i], I[i], R[i]] for i in range(0, len(S))]
-            iter_betas.append(calculateBetaBiased(noiseHistory, S_b))
+            iter_betas.append(betaGammaFromEquations(noiseHistory)[0])
+            if repeat%10 ==0  :
+                print(l,repeat)
 
-        betas.append(iter_betas)
-    betas = np.mean(betas, axis=0)
+
+        Ss=np.mean(Ss,axis=0)
+        Is=np.mean(Is,axis=0)
+        Rs=np.mean(Rs,axis=0)
+
+
+        iter_betas=np.sort(iter_betas)[int(MAX_REPEATS/3):2*int(MAX_REPEATS/3)]
+        print("beta: ",np.median(iter_betas))
+        betas.append(np.median(iter_betas))
+        #plt.plot(range(0,len(iter_betas)),iter_betas)
+        #plt.show()
+        print("done lambda",l)
+
     error =np.abs( np.divide(np.subtract(betas, truebeta), truebeta))
-    return [error, sigmas]
+    return [error, lambdas]
 
 
-
-
-
-def RunNormalNoiseTests():
+def RunNoiseTests():
 
     R0 = 1
-    [error, sigmas] = NormalNoiseTest(truebeta=np.multiply(R0, 0.05), max_sigma=0.1)
+    [error, sigmas] = ExponentialNoiseTest(truebeta=np.multiply(R0, 0.05))
     fig, axs = plt.subplots(3, 2)
     axs[0, 0].plot(sigmas, error)
     axs[0, 0].set_title('beta =' + str(R0 * 0.05) + ' , R0 = ' + str(R0))
@@ -459,31 +390,31 @@ def RunNormalNoiseTests():
 
     print("done ",R0)
     R0 = 1.2
-    [error, sigmas] = NormalNoiseTest(truebeta=np.multiply(R0, 0.05), max_sigma=0.5)
+    [error, sigmas] = ExponentialNoiseTest(truebeta=np.multiply(R0, 0.05))
     axs[0, 1].plot(sigmas, error)
     axs[0, 1].set_title('beta =' + str(R0 * 0.05) + ' , R0 = ' + str(R0))
     axs[0, 1].grid(axis='y', which='major')
     print("done ", R0)
     R0 = 1.5
-    [error, sigmas] = NormalNoiseTest(truebeta=np.multiply(R0, 0.05), max_sigma=3)
+    [error, sigmas] = ExponentialNoiseTest(truebeta=np.multiply(R0, 0.05))
     axs[1, 0].plot(sigmas, error)
     axs[1, 0].set_title('beta =' + str(R0 * 0.05) + ' , R0 = ' + str(R0))
     axs[1, 0].grid(axis='y', which='major')
     print("done ", R0)
     R0 = 2
-    [error, sigmas] = NormalNoiseTest(truebeta=np.multiply(R0, 0.05), max_sigma=2)
+    [error, sigmas] = ExponentialNoiseTest(truebeta=np.multiply(R0, 0.05))
     axs[1, 1].plot(sigmas, error)
     axs[1, 1].set_title('beta =' + str(R0 * 0.05) + ' , R0 = ' + str(R0))
     axs[1, 1].grid(axis='y', which='major')
     print("done ", R0)
     R0 = 4
-    [error, sigmas] = NormalNoiseTest(truebeta=np.multiply(R0, 0.05), max_sigma=4)
+    [error, sigmas] = ExponentialNoiseTest(truebeta=np.multiply(R0, 0.05))
     axs[2, 0].plot(sigmas, error)
     axs[2, 0].set_title('beta =' + str(R0 * 0.05) + ' , R0 = ' + str(R0))
     axs[2, 0].grid(axis='y', which='major')
     print("done ", R0)
     R0 = 8
-    [error, sigmas] = NormalNoiseTest(truebeta=np.multiply(R0, 0.05), max_sigma=10)
+    [error, sigmas] = ExponentialNoiseTest(truebeta=np.multiply(R0, 0.05))
     axs[2, 1].plot(sigmas, error)
     axs[2, 1].set_title('beta =' + str(R0 * 0.05) + ' , R0 = ' + str(R0))
     axs[2, 1].grid(axis='y', which='major')
@@ -492,5 +423,29 @@ def RunNormalNoiseTests():
 
     plt.show()
 
-#RunNormalNoiseTests()
+
+def SingleNodeExamples():
+
+    Gamma = 0.3
+    fig, axs = plt.subplots(2, 2)
+
+
+    for i in range(0,4):
+        R0 = i+1
+        Beta=Gamma*R0
+        testNode = PopulationNode(1e06, name="Athens", beta=Beta, gamma=Gamma)
+        testNode.TestInfect(10)
+        testNode.advanceByDays(150)
+        history = testNode.getHistory()
+        x_axis = range(0,len(history))
+
+        axs[int(i/2), i%2].plot(x_axis , [x[0] for x in history] , x_axis , [x[1] for x in history], x_axis, [x[2] for x in history])
+        axs[int(i/2), i%2].set_title("R0=" + str(R0))
+        axs[int(i/2), i%2].set_xlabel('Day')
+        axs[int(i/2), i%2].set_ylabel('Population')
+        axs[int(i/2), i%2].legend(['Susceptibles', 'Infectious', 'Removed'])
+
+
+    plt.suptitle("Epidemic progress vs R0")
+    plt.show()
 

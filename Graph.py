@@ -220,10 +220,6 @@ class PopulationNet(nx.DiGraph):
         # fig.savefig(name)
         plt.show()
 
-
-
-
-
 def GenerateNodes(TotalPopulation, num_nodes, node_parameters, PopulationDistributionType="uniform"):
     nodes = []
     if PopulationDistributionType == "uniform":
@@ -250,7 +246,6 @@ def CreateRandomNetwork(TotalPopulation, p, numberOfNodes=1):
                 newnet.addEdge(node1, node2, 50)
     return newnet
 
-
 def CreateNetwork_sf(TotalPopulation, numberOfNodes=1):
     newnet = PopulationNet()
 
@@ -263,7 +258,6 @@ def CreateNetwork_sf(TotalPopulation, numberOfNodes=1):
         newnet.add_edge(list(newnet.nodes)[edge[0]], list(newnet.nodes)[edge[1]], weight=50)
 
     return newnet
-
 
 def plotHistory(History):
     S = []
@@ -281,7 +275,6 @@ def plotHistory(History):
     # fig.savefig(name)
     plt.show()
 
-
 def runSimulation(totalNodes=50, totalPopulation=1e08, degree=1, days=500):
     if degree < 1:
         print("subcritical region")
@@ -297,9 +290,8 @@ def runSimulation(totalNodes=50, totalPopulation=1e08, degree=1, days=500):
         net.testInfect()
         net.departures(days)
         # net.plotTotalHistory()
-        net.InfTree.show()
+        #net.InfTree.show()
         return net.getTotalHistory(), net.infectionEvents  # if NaN events, can't return
-
 
 def runAndPlot(nodes=100, TotalPopulation=1e07, p=1.2, days=500,N=5,show_lines=False):
     # Run n simulations
@@ -320,7 +312,9 @@ def runAndPlot(nodes=100, TotalPopulation=1e07, p=1.2, days=500,N=5,show_lines=F
 
     plt.figure()
     plt.plot(t, S, 'g-', t, I, 'r-', t, R, 'b-')
-
+    plt.title('Progress of the epidemic for '+str(nodes)+' nodes (mean degree='+str(p)+")")
+    plt.ylabel('Population')
+    plt.xlabel('Day')
     # Visualization of infection events
     if show_lines == True:
         i = 0
@@ -353,7 +347,6 @@ def GenerateParameters(num_nodes=100):
     g_range = [0.05, 0.15]
     return GenerateRandomParameters(b_range[0], b_range[1], g_range[0], g_range[1], num_nodes)
 
-
 def runRandomNode(days=1000,population=1e07):
     nodeParameters = GenerateParameters(1)
     nodes=GenerateNodes(population, 1, nodeParameters)[0]
@@ -361,14 +354,11 @@ def runRandomNode(days=1000,population=1e07):
     history = nodes.advanceByDays(days)
     return history,nodes.b,nodes.g
 
-
 def discreteDerivative(Points):
 
     for i in range(len(Points)-1):
         Points[i][:]=np.subtract(Points[i+1][:],Points[i][:])
     return Points[0:-1][:]
-
-
 
 def betaGammaFromEquations(History):
 
@@ -402,9 +392,6 @@ def betaGammaFromEquations(History):
         gammas.append(d_gamma)
         #REMOVE
 
-
-
-
     beta=np.median(betas)
     gamma=np.median(gammas)
 
@@ -414,3 +401,7 @@ def betaGammaFromEquations(History):
     plt.show()
     #REMOVE
     return [beta,gamma]
+
+
+
+runAndPlot(nodes=100, TotalPopulation=1e07, p=49, days=300,N=5,show_lines=True)

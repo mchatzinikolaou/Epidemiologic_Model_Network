@@ -1,7 +1,6 @@
 import Graph as gt
 from Graph import PopulationNet as pn
 from random import random
-import Node
 import numpy as np
 import scipy.optimize.nnls as nnls
 import matplotlib.pyplot as plt
@@ -15,9 +14,7 @@ def singleRegression():
     print("Using equations : beta ", params[0], "gamma: ", params[1])
     print("Errors : ", abs(params[0] - beta) / beta, " ", abs(gamma - params[1]) / gamma)
 
-
 def generateGraph(betas,gammas,p,num_nodes=20):
-
 
     InitialPopulations=1e04*np.ones(num_nodes)
     Populations = InitialPopulations
@@ -45,7 +42,6 @@ def betaGamas2(b_min, b_max, g_min, g_max, num_nodes):
     truebetas = [i[0] for i in parameters]
     truegammas = [i[1] for i in parameters]
     return [truebetas, truegammas]
-
 
 def getHistories(network,DAYS,N):
     NodeHistories = []
@@ -89,8 +85,6 @@ DAYS=500
 N=20
 truebetas,truegammas=betaGamas1(N)
 
-
-
 repeats=N*N
 predicted_b=[]
 for repeat in range(0,repeats):
@@ -123,22 +117,15 @@ for repeat in range(0,repeats):
     print("repeat ",str(repeat+1), " just finished")
     #network.plotTotalHistory()
 
-
-
 mean_b=np.mean(predicted_b, axis=0)
 print(truebetas)
 print(mean_b)
-
-
-
 
 plt.scatter(truebetas,mean_b)
 plt.title("Scatter plot of real beta values and predicted beta values")
 plt.ylabel("Predicted beta(mean)")
 plt.xlabel("True beta")
 plt.show()
-
-
 
 median_b=np.median(predicted_b,axis=0)
 
@@ -152,7 +139,5 @@ print("True betas " ,truebetas)
 print("Mean betas : ",mean_b)
 print("Median betas: ",median_b)
 
-
 print("Mean absolute error  : ",np.mean(np.subtract(truebetas,mean_b)))
 print("Median absolute error  : ",np.mean(np.subtract(truebetas,median_b)))
-
