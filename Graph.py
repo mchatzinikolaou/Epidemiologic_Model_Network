@@ -259,6 +259,11 @@ def CreateNetwork_sf(TotalPopulation, numberOfNodes=1):
 
     return newnet
 
+
+#create random edges
+#create distribution with N = number of edges
+#assign randomly weights from distribution to the existing edges
+
 def plotHistory(History):
     S = []
     I = []

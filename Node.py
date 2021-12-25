@@ -8,10 +8,6 @@ from scipy.ndimage.filters import uniform_filter1d
 # Migration between populations
 # Calculate traveling population categories (multinomial distribution in "travel packets")
 
-# TODO
-#Make beta noise series of time.
-
-
 
 # Regression
 # Train a neural net
@@ -428,7 +424,8 @@ def SingleNodeExamples():
 
     Gamma = 0.3
     fig, axs = plt.subplots(2, 2)
-
+    betas=[]
+    gammas=[]
 
     for i in range(0,4):
         R0 = i+1
@@ -444,8 +441,11 @@ def SingleNodeExamples():
         axs[int(i/2), i%2].set_xlabel('Day')
         axs[int(i/2), i%2].set_ylabel('Population')
         axs[int(i/2), i%2].legend(['Susceptibles', 'Infectious', 'Removed'])
-
+        parameters=betaGammaFromEquations(history)
+        betas.append(parameters[0])
+        gammas.append(parameters[1])
 
     plt.suptitle("Epidemic progress vs R0")
     plt.show()
+    return betas,gammas
 

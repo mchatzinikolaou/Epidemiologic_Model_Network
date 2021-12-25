@@ -82,10 +82,10 @@ def getDeltasAndMatrix(Ss,Populations,DAYS,N):
     return MeasurementMatrix,DeltaS
 
 DAYS=500
-N=20
+N=10
 truebetas,truegammas=betaGamas1(N)
 
-repeats=N*N
+repeats=20
 predicted_b=[]
 for repeat in range(0,repeats):
 
@@ -122,22 +122,20 @@ print(truebetas)
 print(mean_b)
 
 plt.scatter(truebetas,mean_b)
-plt.title("Scatter plot of real beta values and predicted beta values")
+plt.title("Scatter plot of real beta values and estimated beta values (error="+str(np.mean(np.subtract(truebetas,mean_b)))+")")
 plt.ylabel("Predicted beta(mean)")
 plt.xlabel("True beta")
+plt.grid()
 plt.show()
 
 median_b=np.median(predicted_b,axis=0)
 
 plt.scatter(truebetas,median_b)
-plt.title("Scatter plot of real beta values and predicted beta values")
+plt.title("Scatter plot of real beta values and estimated beta values (error = "+np.mean(np.subtract(truebetas,median_b))+")")
 plt.ylabel("Predicted beta(median)")
 plt.xlabel("True beta")
+plt.grid()
 plt.show()
 
-print("True betas " ,truebetas)
-print("Mean betas : ",mean_b)
-print("Median betas: ",median_b)
 
-print("Mean absolute error  : ",np.mean(np.subtract(truebetas,mean_b)))
 print("Median absolute error  : ",np.mean(np.subtract(truebetas,median_b)))
