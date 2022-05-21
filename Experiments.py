@@ -82,10 +82,10 @@ def getDeltasAndMatrix(Ss,Populations,DAYS,N):
     return MeasurementMatrix,DeltaS
 
 DAYS=500
-N=10
+N=7
 truebetas,truegammas=betaGamas1(N)
 
-repeats=20
+repeats=10
 predicted_b=[]
 for repeat in range(0,repeats):
 
@@ -106,7 +106,7 @@ for repeat in range(0,repeats):
 
 
     betas=nnls.nnls(MeasurementMatrix,DeltaS,maxiter=10*len(MeasurementMatrix))[0]
-
+    print('Condition number : ' + str(np.linalg.cond(MeasurementMatrix)))
 
     errors=100*np.divide(np.subtract(betas,truebetas),truebetas)
     idx=np.argmax(errors)
@@ -114,28 +114,36 @@ for repeat in range(0,repeats):
     #testBetas=np.matmul(np.linalg.pinv(MeasurementMatrix),DeltaS)
 
     predicted_b.append(list(betas))
-    print("repeat ",str(repeat+1), " just finished")
+    #print("repeat ",str(repeat+1), " just finished")
     #network.plotTotalHistory()
 
 mean_b=np.mean(predicted_b, axis=0)
 print(truebetas)
 print(mean_b)
 
+x = np.linspace(0.1,0.5 , 1000)
+
+
 plt.scatter(truebetas,mean_b)
 plt.title("Scatter plot of real beta values and estimated beta values (error="+str(np.mean(np.subtract(truebetas,mean_b)))+")")
 plt.ylabel("Predicted beta(mean)")
 plt.xlabel("True beta")
 plt.grid()
+plt.plot(x, x, '-r')
 plt.show()
+
+
 
 median_b=np.median(predicted_b,axis=0)
 
 plt.scatter(truebetas,median_b)
-plt.title("Scatter plot of real beta values and estimated beta values (error = "+np.mean(np.subtract(truebetas,median_b))+")")
+plt.title("Scatter plot of real beta values and estimated beta values (error = "+str(np.mean(np.subtract(truebetas,median_b)))+")")
 plt.ylabel("Predicted beta(median)")
 plt.xlabel("True beta")
 plt.grid()
+plt.plot(x, x, '-r')
 plt.show()
+
 
 
 print("Median absolute error  : ",np.mean(np.subtract(truebetas,median_b)))

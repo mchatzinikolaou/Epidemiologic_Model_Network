@@ -354,7 +354,7 @@ def ExponentialNoiseTest(truebeta=0.2,max_lambda=200,min_lambda=1,points=80,MAX_
 
             noiseHistory = [[S[i], I[i], R[i]] for i in range(0, len(S))]
             iter_betas.append(betaGammaFromEquations(noiseHistory)[0])
-            if repeat%10 ==0  :
+            if repeat%10 ==0 :
                 print(l,repeat)
 
 
@@ -449,3 +449,18 @@ def SingleNodeExamples():
     plt.show()
     return betas,gammas
 
+gamma=0.2
+beta=0.4
+testNode = PopulationNode(1e06, name="Athens", beta=beta, gamma=gamma)
+testNode.TestInfect(10)
+testNode.advanceByDays(500)
+history = testNode.getHistory()
+plt.title("Epidemic progress for 500 days")
+plt.xlabel("Day")
+plt.ylabel("Population fraction")
+
+
+plt.plot(range(1,501),history)
+plt.legend(['Susceptibles', 'Infectious', 'Removed'])
+plt.grid()
+plt.show()

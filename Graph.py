@@ -132,7 +132,7 @@ class PopulationNet(nx.DiGraph):
                 # print("From ", edge[0].getName(), " to ", edge[1].getName(), ": ", edge[2]['weight'], " travelers")
                 newInfection = edge[0].TravelTo(edge[1], edge[2]['weight'])
                 if newInfection:
-                    print("Node ", edge[0].name, "infected node ", edge[1].name," on day ",day)
+                    #print("Node ", edge[0].name, "infected node ", edge[1].name," on day ",day)
                     self.infectionEvents.append([day, edge[0], edge[1]])
                     self.InfTree.AddEdgeEvent(day, [edge[0].name, edge[1].name])
             # Print (newly) infected nodes
@@ -409,4 +409,4 @@ def betaGammaFromEquations(History):
 
 
 
-runAndPlot(nodes=100, TotalPopulation=1e07, p=49, days=300,N=5,show_lines=True)
+#runAndPlot(nodes=3, TotalPopulation=1e07, p=1, days=500,N=5,show_lines=True)
